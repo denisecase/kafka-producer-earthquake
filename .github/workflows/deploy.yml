@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      actions: write  # must have repo write access to trigger
+      actions: write  # Must have repo write access to trigger
 
     steps:
     - name: Checkout repository
@@ -26,20 +26,20 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Kafka from GitHub Releases & Start Services
+    - name: Install Kafka from Apache & Start Services
       run: |
-        # Define Kafka version & download URL from GitHub Releases
-        KAFKA_VERSION=3.5.1
+        # Define Kafka version & download URL
+        KAFKA_VERSION=3.9.0
         KAFKA_SCALA_VERSION=2.13
         KAFKA_DIR=/tmp/kafka
         KAFKA_TGZ="/tmp/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
-        GITHUB_RELEASE_URL="https://github.com/yourusername/yourrepo/releases/download/v1.0/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
+        APACHE_KAFKA_URL="https://downloads.apache.org/kafka/$KAFKA_VERSION/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
 
-        # Download Kafka from GitHub Releases
-        echo "Downloading Kafka from GitHub Releases..."
-        curl -fsSL -o "$KAFKA_TGZ" "$GITHUB_RELEASE_URL"
+        # Download Kafka from Apache Kafka's official site
+        echo "Downloading Kafka $KAFKA_VERSION for Scala $KAFKA_SCALA_VERSION..."
+        curl -fsSL -o "$KAFKA_TGZ" "$APACHE_KAFKA_URL"
 
-        # Verify download was successful
+        # Verify the download was successful
         if [[ ! -s "$KAFKA_TGZ" ]]; then
           echo "ERROR: Kafka download failed. Exiting..."
           exit 1
@@ -63,7 +63,6 @@ jobs:
         echo "---- Kafka Logs ----"
         tail -n 20 kafka.log
 
-
     - name: Install dependencies
       run: |
         python3 -m venv .venv
@@ -75,5 +74,5 @@ jobs:
     - name: Run Kafka Producer (Limited to 20 Minutes)
       run: |
         source .venv/bin/activate
-        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # local imports
-        timeout 20m python3 producers/producer_earthquake.py  
+        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
+        timeout 20m python3 producers/producer_earthquake.py
