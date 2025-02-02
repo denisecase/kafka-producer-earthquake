@@ -26,6 +26,28 @@ jobs:
       with:
         python-version: "3.11"
 
+    - name: Install Kafka & Start Services
+      run: |
+        # Download & Extract Kafka
+        KAFKA_VERSION=3.5.1
+        KAFKA_DIR=/tmp/kafka
+        wget -qO - "https://downloads.apache.org/kafka/$KAFKA_VERSION/kafka_2.13-$KAFKA_VERSION.tgz" | tar -xz -C /tmp
+        mv /tmp/kafka_2.13-$KAFKA_VERSION $KAFKA_DIR
+        
+        # Start Zookeeper
+        nohup $KAFKA_DIR/bin/zookeeper-server-start.sh $KAFKA_DIR/config/zookeeper.properties > zookeeper.log 2>&1 &
+        sleep 15  # Wait a bit to let Zookeeper start
+
+        # Start Kafka
+        nohup $KAFKA_DIR/bin/kafka-server-start.sh $KAFKA_DIR/config/server.properties > kafka.log 2>&1 &
+        sleep 15  # Wait a bit to let Kafka start
+
+        # Log Zookeeper & Kafka Status
+        echo "---- Zookeeper Logs ----"
+        tail -n 20 zookeeper.log
+        echo "---- Kafka Logs ----"
+        tail -n 20 kafka.log
+
     - name: Install dependencies
       run: |
         python3 -m venv .venv
