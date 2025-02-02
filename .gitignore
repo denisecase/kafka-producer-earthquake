@@ -15,3 +15,11 @@ __pycache__/
 
 # Environment variables file (which could contain sensitive information)
 .env
+
+# log files
+logs/
+*.log
+
+# live data files (uncomment if file gets too large)
+# data/earthquake_stream.json
+

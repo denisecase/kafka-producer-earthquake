@@ -5,14 +5,13 @@ Fetch real-time earthquake data from USGS API and stream it to a file and Kafka 
 
 Example JSON message:
 {
-    "magnitude": 4.8,
-    "location": "California",
-    "latitude": 36.7783,
-    "longitude": -119.4179,
-    "depth": 10.5,
-    "time": "2024-02-01T12:34:56Z"
+    "magnitude": 2.75,
+    "location": "8 km SSE of Maria Antonia, Puerto Rico",
+    "latitude": 17.9155,
+    "longitude": -66.8498333333333,
+    "depth": 13.42,
+    "time": "2025-02-02T00:24:43.990000",
 }
-
 """
 
 #####################################
@@ -20,14 +19,13 @@ Example JSON message:
 #####################################
 
 # Standard library
+from datetime import datetime, timezone
 import json
 import os
 import pathlib
-import random
+import requests
 import sys
 import time
-from datetime import datetime
-import requests
 
 # External modules
 from kafka import KafkaProducer
@@ -44,6 +42,7 @@ from utils.utils_logger import logger
 
 USGS_API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
+
 def fetch_earthquake_data():
     """
     Fetch real-time earthquake data from the USGS API.
@@ -57,22 +56,30 @@ def fetch_earthquake_data():
     }
 
     try:
-        response = requests.get(USGS_API_URL, params=params)
-        response.raise_for_status()  # Raise an error for HTTP issues
+        url: str = config.get_source_data_url() or USGS_API_URL
+
+        response = requests.get(url, params=params)
+
+        # Raise an error for HTTP issues
+        response.raise_for_status()
+
+        # Parse JSON response into a dictionary
         data = response.json()
 
         earthquakes = []
         for feature in data["features"]:
             properties = feature["properties"]
             geometry = feature["geometry"]
-            
+
             earthquake = {
                 "magnitude": properties.get("mag"),
                 "location": properties.get("place"),
                 "latitude": geometry["coordinates"][1],
                 "longitude": geometry["coordinates"][0],
                 "depth": geometry["coordinates"][2],
-                "time": datetime.utcfromtimestamp(properties["time"] / 1000).isoformat(),
+                "time": datetime.fromtimestamp(
+                    properties["time"] / 1000, tz=timezone.utc
+                ).isoformat(),
             }
             earthquakes.append(earthquake)
 
@@ -86,6 +93,7 @@ def fetch_earthquake_data():
 #####################################
 # Define Main Function
 #####################################
+
 
 def main() -> None:
     logger.info("Starting Producer to run continuously.")
@@ -134,7 +142,7 @@ def main() -> None:
                 f.write(json.dumps(message) + "\n")
                 logger.info(f"Wrote message to file: {message}")
 
-            # Send to Kafka 
+            # Send to Kafka
             if producer:
                 producer.send(topic, value=message)
                 logger.info(f"Sent message to Kafka topic '{topic}': {message}")
