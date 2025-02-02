@@ -26,27 +26,43 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Kafka & Start Services
+    - name: Install Kafka from GitHub Releases & Start Services
       run: |
-        # Download & Extract Kafka
+        # Define Kafka version & download URL from GitHub Releases
         KAFKA_VERSION=3.5.1
+        KAFKA_SCALA_VERSION=2.13
         KAFKA_DIR=/tmp/kafka
-        wget -qO - "https://downloads.apache.org/kafka/$KAFKA_VERSION/kafka_2.13-$KAFKA_VERSION.tgz" | tar -xz -C /tmp
-        mv /tmp/kafka_2.13-$KAFKA_VERSION $KAFKA_DIR
-        
+        KAFKA_TGZ="/tmp/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
+        GITHUB_RELEASE_URL="https://github.com/yourusername/yourrepo/releases/download/v1.0/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
+
+        # Download Kafka from GitHub Releases
+        echo "Downloading Kafka from GitHub Releases..."
+        curl -fsSL -o "$KAFKA_TGZ" "$GITHUB_RELEASE_URL"
+
+        # Verify download was successful
+        if [[ ! -s "$KAFKA_TGZ" ]]; then
+          echo "ERROR: Kafka download failed. Exiting..."
+          exit 1
+        fi
+
+        # Extract Kafka
+        tar -xzf "$KAFKA_TGZ" -C /tmp || { echo "ERROR: Failed to extract Kafka. Exiting..."; exit 1; }
+        mv "/tmp/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION" "$KAFKA_DIR"
+
         # Start Zookeeper
-        nohup $KAFKA_DIR/bin/zookeeper-server-start.sh $KAFKA_DIR/config/zookeeper.properties > zookeeper.log 2>&1 &
-        sleep 15  # Wait a bit to let Zookeeper start
+        nohup "$KAFKA_DIR/bin/zookeeper-server-start.sh" "$KAFKA_DIR/config/zookeeper.properties" > zookeeper.log 2>&1 &
+        sleep 15  # Wait for Zookeeper to start
 
         # Start Kafka
-        nohup $KAFKA_DIR/bin/kafka-server-start.sh $KAFKA_DIR/config/server.properties > kafka.log 2>&1 &
-        sleep 15  # Wait a bit to let Kafka start
+        nohup "$KAFKA_DIR/bin/kafka-server-start.sh" "$KAFKA_DIR/config/server.properties" > kafka.log 2>&1 &
+        sleep 15  # Wait for Kafka to start
 
         # Log Zookeeper & Kafka Status
         echo "---- Zookeeper Logs ----"
         tail -n 20 zookeeper.log
         echo "---- Kafka Logs ----"
         tail -n 20 kafka.log
+
 
     - name: Install dependencies
       run: |
