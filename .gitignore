@@ -8,6 +8,7 @@
 
 # Compiled Python files
 __pycache__/
+.pytest_cache/
 
 # macOS system files
 .DS_Store
