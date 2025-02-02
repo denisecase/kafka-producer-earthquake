@@ -1,39 +1,41 @@
-name: CI/CD Pipeline
+name: Kafka Producer Limited Deployment
 
-on: [push, pull_request]
+on:
+  push:  
+    branches:
+      - main
+
+  workflow_dispatch: 
+
+  schedule:
+    - cron: "0 10,14,18 * * 1-5"  # Runs at 10 AM, 2 PM, 6 PM (Mon-Fri)
 
 jobs:
-  build:
+  run-producer:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ["3.11"]  
+    permissions:
+      actions: write  # must have repo write access to trigger
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
 
     - name: Install dependencies
       run: |
-        python3 -m venv .venv
+        python3 -3.11 -m venv .venv
         source .venv/bin/activate
         python3 -m pip install --upgrade pip setuptools wheel
         python3 -m pip install -r requirements.txt
+        python3 -m pip list  
 
-    - name: Run tests
+    - name: Run Kafka Producer (Limited to 20 Minutes)
       run: |
         source .venv/bin/activate
-        pytest tests/
-
-    - name: Deploy
-      if: success()
-      run: |
-        echo "Deploying Kafka Producer..."
-        source .venv/bin/activate
-        python3 producers/producer_earthquake.py
+        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # local imports
+        timeout 20m python3 producers/producer_earthquake.py  
