@@ -3,6 +3,9 @@
 This project streams real-time earthquake data from the USGS API to a Kafka topic and a data file.
 It is part of a pipeline that illustrates analyzing live geospatial data.
 
+This repo uses GitHub Actions to deploy a cloud-based Kafka producer for free. Click the Actions tab and review the 
+.github/workflows folder to see more. 
+
 ## Environment and Local Execution
 
 Use the following PowerShell commands from the root project folder to:
@@ -32,23 +35,23 @@ py -m producers.producer_earthquake
 - Create a .env file and configure Kafka broker address, topic name, and other settings.
 - The producer will run continuously, fetching and streaming earthquake data. Use Ctrl + C to stop the process.
 
-## Deploying to GitHub Codespaces
-GitHub Codespaces gives 60 free hours/month.
+## Deploy To GitHub Codespaces
+GitHub Codespaces offers 60 free hours/month.
 To avoid burning hours, stop Codespaces when not using.
+This producer runs on a schedule to keep from incurring costs. 
 
-## Schedule Runs
-This service will run 3 times per weekday (i.e., 10 AM, 2 PM, 6 PM).
-Each run will go for 20 minutes. 
+The service runs 3 times each weekday (at 10 AM, 2 PM, and 6 PM). Each run lasts 20 minutes. 
 
 3 runs/day × 20 minutes/run × 5 days/week × 4 weeks/month
 -  3 × 0.33 × 5 × ~4
 -  ~20 hours per month (well within free 60 hours)
 
-##  If Using Oracle Free Tier or Others
+##  CAUTION: If Using Oracle Free Tier or Others
 Stick to free-tier services (like Oracle Free VM).
-Schedule runs. 
+Schedule runs as we have done here to stay within limits. 
 NEVER leave resources running.
-Check usage in the provider’s dashboard to avoid unexpected charges.
+Do not allow unlimited manual triggering of your service. 
+Monitor usage in the service dashboard to avoid unexpected charges.
 
 ## Save Space
 To save disk space, you can delete the .venv folder when not actively working on this project.
