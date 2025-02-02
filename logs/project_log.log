@@ -1,0 +1,68 @@
+2025-02-01 18:34:52.997 | INFO     | utils.utils_logger:<module>:43 - Logging to file: logs\project_log.log
+2025-02-01 18:34:53.000 | INFO     | __main__:main:91 - Starting Producer to run continuously.
+2025-02-01 18:34:53.000 | INFO     | __main__:main:93 - STEP 1. Read environment variables.
+2025-02-01 18:34:53.000 | INFO     | utils.utils_config:get_message_interval_seconds_as_int:65 - MESSAGE_INTERVAL_SECONDS: 60
+2025-02-01 18:34:53.000 | INFO     | utils.utils_config:get_kafka_topic:58 - KAFKA_TOPIC: earthquake-events
+2025-02-01 18:34:53.000 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:34:53.001 | INFO     | utils.utils_config:get_base_data_path:73 - BASE_DATA_DIR: C:\Users\edaci\Documents\kafka-producer-earthquake\data
+2025-02-01 18:34:53.001 | INFO     | utils.utils_config:get_live_data_path:82 - LIVE_DATA_PATH: C:\Users\edaci\Documents\kafka-producer-earthquake\data\earthquake_live.json
+2025-02-01 18:34:53.001 | INFO     | __main__:main:103 - STEP 2. Delete the live data file if exists to start fresh.
+2025-02-01 18:34:53.001 | INFO     | __main__:main:108 - STEP 3. Build the path folders to the live data file if needed.
+2025-02-01 18:34:53.001 | INFO     | __main__:main:114 - STEP 4. Create a Kafka producer and topic.
+2025-02-01 18:34:53.002 | INFO     | utils.utils_config:get_zookeeper_address:44 - ZOOKEEPER_ADDRESS: localhost:2181
+2025-02-01 18:34:53.004 | INFO     | utils.utils_producer:check_zookeeper_service_is_ready:47 - Zookeeper is ready at localhost:2181.
+2025-02-01 18:34:53.004 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:34:53.329 | INFO     | utils.utils_producer:check_kafka_service_is_ready:66 - Kafka is ready. Brokers: {'throttle_time_ms': 0, 'brokers': [{'node_id': 1001, 'host': 'localhost', 'port': 9092, 'rack': None}], 'cluster_id': 'oHyp6coDS_qH0EBp0TLWbQ', 'controller_id': 1001}
+2025-02-01 18:34:53.441 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:34:53.762 | INFO     | utils.utils_producer:create_kafka_topic:154 - Creating 'earthquake-events'.
+2025-02-01 18:34:53.816 | INFO     | utils.utils_producer:create_kafka_topic:159 - Topic 'earthquake-events' created successfully.
+2025-02-01 18:34:53.817 | INFO     | __main__:main:123 - Kafka producer connected to localhost:9092
+2025-02-01 18:34:53.817 | INFO     | __main__:main:128 - STEP 5. Stream earthquake data.
+2025-02-01 18:34:54.305 | INFO     | __main__:main:131 - {'magnitude': 3.4, 'location': '72 km S of Nikolski, Alaska', 'latitude': 52.2871, 'longitude': -168.7477, 'depth': 25.5, 'time': '2025-02-01T23:45:00.354000'}
+2025-02-01 18:34:54.305 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 3.4, 'location': '72 km S of Nikolski, Alaska', 'latitude': 52.2871, 'longitude': -168.7477, 'depth': 25.5, 'time': '2025-02-01T23:45:00.354000'}
+2025-02-01 18:34:54.363 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 3.4, 'location': '72 km S of Nikolski, Alaska', 'latitude': 52.2871, 'longitude': -168.7477, 'depth': 25.5, 'time': '2025-02-01T23:45:00.354000'}
+2025-02-01 18:35:54.366 | INFO     | __main__:main:131 - {'magnitude': 3.2, 'location': '22 km NNE of Yerington, Nevada', 'latitude': 39.1656, 'longitude': -119.0433, 'depth': 5.5, 'time': '2025-02-01T22:54:32.037000'}
+2025-02-01 18:35:54.367 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 3.2, 'location': '22 km NNE of Yerington, Nevada', 'latitude': 39.1656, 'longitude': -119.0433, 'depth': 5.5, 'time': '2025-02-01T22:54:32.037000'}
+2025-02-01 18:35:54.369 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 3.2, 'location': '22 km NNE of Yerington, Nevada', 'latitude': 39.1656, 'longitude': -119.0433, 'depth': 5.5, 'time': '2025-02-01T22:54:32.037000'}
+2025-02-01 18:36:54.370 | INFO     | __main__:main:131 - {'magnitude': 4.4, 'location': '272 km WSW of Tual, Indonesia', 'latitude': -6.754, 'longitude': 130.5615, 'depth': 80.864, 'time': '2025-02-01T22:39:30.402000'}
+2025-02-01 18:36:54.371 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 4.4, 'location': '272 km WSW of Tual, Indonesia', 'latitude': -6.754, 'longitude': 130.5615, 'depth': 80.864, 'time': '2025-02-01T22:39:30.402000'}
+2025-02-01 18:36:54.373 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 4.4, 'location': '272 km WSW of Tual, Indonesia', 'latitude': -6.754, 'longitude': 130.5615, 'depth': 80.864, 'time': '2025-02-01T22:39:30.402000'}
+2025-02-01 18:37:54.375 | INFO     | __main__:main:131 - {'magnitude': 3, 'location': '2 km SE of Indios, Puerto Rico', 'latitude': 17.9773333333333, 'longitude': -66.802, 'depth': 13.64, 'time': '2025-02-01T22:16:09.490000'}
+2025-02-01 18:37:54.375 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 3, 'location': '2 km SE of Indios, Puerto Rico', 'latitude': 17.9773333333333, 'longitude': -66.802, 'depth': 13.64, 'time': '2025-02-01T22:16:09.490000'}
+2025-02-01 18:37:54.375 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 3, 'location': '2 km SE of Indios, Puerto Rico', 'latitude': 17.9773333333333, 'longitude': -66.802, 'depth': 13.64, 'time': '2025-02-01T22:16:09.490000'}
+2025-02-01 18:38:54.381 | INFO     | __main__:main:131 - {'magnitude': 4.8, 'location': '165 km SW of Nabire, Indonesia', 'latitude': -4.4586, 'longitude': 134.4839, 'depth': 10, 'time': '2025-02-01T20:24:31.792000'}
+2025-02-01 18:38:54.382 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 4.8, 'location': '165 km SW of Nabire, Indonesia', 'latitude': -4.4586, 'longitude': 134.4839, 'depth': 10, 'time': '2025-02-01T20:24:31.792000'}
+2025-02-01 18:38:54.382 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 4.8, 'location': '165 km SW of Nabire, Indonesia', 'latitude': -4.4586, 'longitude': 134.4839, 'depth': 10, 'time': '2025-02-01T20:24:31.792000'}
+2025-02-01 18:39:54.389 | INFO     | __main__:main:151 - Kafka producer closed.
+2025-02-01 18:39:54.389 | INFO     | __main__:main:152 - FINALLY: Producer shutting down.
+2025-02-01 18:48:08.559 | INFO     | utils.utils_logger:<module>:43 - Logging to file: logs\project_log.log
+2025-02-01 18:48:08.559 | INFO     | __main__:main:91 - Starting Producer to run continuously.
+2025-02-01 18:48:08.559 | INFO     | __main__:main:93 - STEP 1. Read environment variables.
+2025-02-01 18:48:08.559 | INFO     | utils.utils_config:get_message_interval_seconds_as_int:65 - MESSAGE_INTERVAL_SECONDS: 60
+2025-02-01 18:48:08.559 | INFO     | utils.utils_config:get_kafka_topic:58 - KAFKA_TOPIC: earthquake-events
+2025-02-01 18:48:08.559 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:48:08.559 | INFO     | utils.utils_config:get_base_data_path:73 - BASE_DATA_DIR: C:\Users\edaci\Documents\kafka-producer-earthquake\data
+2025-02-01 18:48:08.559 | INFO     | utils.utils_config:get_live_data_path:82 - LIVE_DATA_PATH: C:\Users\edaci\Documents\kafka-producer-earthquake\data\earthquake_live.json
+2025-02-01 18:48:08.559 | INFO     | __main__:main:103 - STEP 2. Delete the live data file if exists to start fresh.
+2025-02-01 18:48:08.575 | INFO     | __main__:main:107 - Deleted existing live data file.
+2025-02-01 18:48:08.575 | INFO     | __main__:main:108 - STEP 3. Build the path folders to the live data file if needed.
+2025-02-01 18:48:08.575 | INFO     | __main__:main:114 - STEP 4. Create a Kafka producer and topic.
+2025-02-01 18:48:08.575 | INFO     | utils.utils_config:get_zookeeper_address:44 - ZOOKEEPER_ADDRESS: localhost:2181
+2025-02-01 18:48:08.579 | INFO     | utils.utils_producer:check_zookeeper_service_is_ready:47 - Zookeeper is ready at localhost:2181.
+2025-02-01 18:48:08.579 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:48:08.896 | INFO     | utils.utils_producer:check_kafka_service_is_ready:66 - Kafka is ready. Brokers: {'throttle_time_ms': 0, 'brokers': [{'node_id': 1001, 'host': 'localhost', 'port': 9092, 'rack': None}], 'cluster_id': 'oHyp6coDS_qH0EBp0TLWbQ', 'controller_id': 1001}
+2025-02-01 18:48:08.999 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:48:09.311 | INFO     | utils.utils_producer:create_kafka_topic:150 - Topic 'earthquake-events' exists. Clearing it out...
+2025-02-01 18:48:09.311 | INFO     | utils.utils_config:get_kafka_broker_address:51 - KAFKA_BROKER_ADDRESS: localhost:9092
+2025-02-01 18:48:09.626 | ERROR    | utils.utils_producer:clear_kafka_topic:226 - Error managing retention for topic 'earthquake-events': list indices must be integers or slices, not ConfigResource
+2025-02-01 18:48:09.626 | INFO     | __main__:main:123 - Kafka producer connected to localhost:9092
+2025-02-01 18:48:09.626 | INFO     | __main__:main:128 - STEP 5. Stream earthquake data.
+2025-02-01 18:48:10.064 | INFO     | __main__:main:131 - {'magnitude': 2.75, 'location': '8 km SSE of Maria Antonia, Puerto Rico', 'latitude': 17.9155, 'longitude': -66.8498333333333, 'depth': 13.42, 'time': '2025-02-02T00:24:43.990000'}
+2025-02-01 18:48:10.066 | INFO     | __main__:main:135 - Wrote message to file: {'magnitude': 2.75, 'location': '8 km SSE of Maria Antonia, Puerto Rico', 'latitude': 17.9155, 'longitude': -66.8498333333333, 'depth': 13.42, 'time': '2025-02-02T00:24:43.990000'}
+2025-02-01 18:48:10.066 | INFO     | __main__:main:140 - Sent message to Kafka topic 'earthquake-events': {'magnitude': 2.75, 'location': '8 km SSE of Maria Antonia, Puerto Rico', 'latitude': 17.9155, 'longitude': -66.8498333333333, 'depth': 13.42, 'time': '2025-02-02T00:24:43.990000'}
+2025-02-01 18:48:10.806 | WARNING  | __main__:main:145 - WARNING: Producer interrupted by user.
+2025-02-01 18:48:10.813 | INFO     | __main__:main:151 - Kafka producer closed.
+2025-02-01 18:48:10.814 | INFO     | __main__:main:152 - FINALLY: Producer shutting down.
+2025-02-01 18:52:07.611 | INFO     | utils.utils_logger:<module>:43 - Logging to file: logs\project_log.log
+2025-02-01 18:54:18.898 | INFO     | utils.utils_logger:<module>:43 - Logging to file: logs\project_log.log
+2025-02-01 18:54:18.900 | INFO     | utils.utils_config:get_kafka_topic:58 - KAFKA_TOPIC: earthquake-events
