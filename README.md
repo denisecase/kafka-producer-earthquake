@@ -3,8 +3,8 @@
 This project streams real-time earthquake data from the USGS API to a Kafka topic and a data file.
 It is part of a pipeline that illustrates analyzing live geospatial data.
 
-This repo uses GitHub Actions to deploy a cloud-based Kafka producer for free. Click the Actions tab and review the 
-.github/workflows folder to see more. 
+This repo uses GitHub Actions to deploy a cloud-based Kafka producer. 
+Click the "Actions" tab and the "Kafka Producer Limited Deployment" to see more. 
 
 ## Environment and Local Execution
 
@@ -18,7 +18,9 @@ Use the following PowerShell commands from the root project folder to:
 6. Deploy the Kafka producer locally. 
 
 Mac/Linux: Try cross-platform PowerShell or adjust the commands as needed for your operating system. 
-See requirements.txt for more information. 
+See requirements.txt for more information.
+
+For an automated setup, see **.github/workflows/deploy.yml**, which runs these same steps in a cloud-based GitHub Actions runner on Ubuntu Linux.
 
 ```shell
 py -3.11 -m venv .venv
@@ -42,7 +44,7 @@ This producer runs on a schedule to keep from incurring costs.
 
 The service runs 3 times each weekday (at 10 AM, 2 PM, and 6 PM). Each run lasts 20 minutes. 
 
-3 runs/day × 20 minutes/run × 5 days/week × 4 weeks/month
+That's 3 runs/day × 20 minutes/run × 5 days/week × 4 weeks/month
 -  3 × 0.33 × 5 × ~4
 -  ~20 hours per month (well within free 60 hours)
 
@@ -56,7 +58,6 @@ Monitor usage in the service dashboard to avoid unexpected charges.
 ## Save Space
 To save disk space, you can delete the .venv folder when not actively working on this project.
 You can always recreate it, activate it, and reinstall the necessary packages later. 
-Managing Python virtual environments is a valuable skill. 
 
 ## License
 This project is licensed under the MIT License as an example project. 
