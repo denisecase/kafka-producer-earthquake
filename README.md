@@ -6,6 +6,11 @@ It is part of a pipeline that illustrates analyzing live geospatial data.
 This repo uses GitHub Actions to deploy a cloud-based Kafka producer. 
 Click the "Actions" tab and the "Kafka Producer Limited Deployment" to see more. 
 
+## SMS Text Alerts
+
+We've added a consumer that gets earthquake JSON data and sends a text message if the quake is magnitude 4.5 or greater.
+To use this feature with your own gmail account and phone number, see [text-alert](https://github.com/denisecase/text-alert/).
+
 ## Environment and Local Execution
 
 Use the following PowerShell commands from the root project folder to:

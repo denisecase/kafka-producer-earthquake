@@ -95,6 +95,13 @@ requests
 pytest
 
 # ======================================================
+# SENDING ALERTS
+# ======================================================
+
+git+https://github.com/denisecase/email-alert.git
+git+https://github.com/denisecase/text-alert.git
+
+# ======================================================
 # KAFKA MESSAGE BROKER INTEGRATION
 # ======================================================
 
