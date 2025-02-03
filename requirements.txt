@@ -98,8 +98,8 @@ pytest
 # SENDING ALERTS
 # ======================================================
 
-git+https://github.com/denisecase/email-alert.git
-git+https://github.com/denisecase/text-alert.git
+dc-mailer
+dc-texter
 
 # ======================================================
 # KAFKA MESSAGE BROKER INTEGRATION

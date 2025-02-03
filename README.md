@@ -8,8 +8,10 @@ Click the "Actions" tab and the "Kafka Producer Limited Deployment" to see more.
 
 ## SMS Text Alerts
 
-We've added a consumer that gets earthquake JSON data and sends a text message if the quake is magnitude 4.5 or greater.
-To use this feature with your own gmail account and phone number, see [text-alert](https://github.com/denisecase/text-alert/).
+We've added a consumer that gets earthquake JSON data and sends you a text message if the quake is magnitude 4.5 or greater.
+To use this feature add 
+[dc-texter](https://pypi.org/project/dc-texter/) (or 
+[dc-mailer](https://pypi.org/project/dc-mailer/)) to requirements.txt and follow the instructions to configure your gmail. 
 
 ## Environment and Local Execution
 

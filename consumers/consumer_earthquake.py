@@ -25,7 +25,7 @@ import time
 
 # External modules
 from kafka import KafkaConsumer
-from dc_etexter import send_text # send myself alerts
+from dc_texter import send_text # send myself alerts
 
 # Local utilities
 import utils.utils_config as config
