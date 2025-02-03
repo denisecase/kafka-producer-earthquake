@@ -14,6 +14,12 @@ jobs:
   run-producer:
     runs-on: ubuntu-latest
 
+    env:
+      OUTGOING_EMAIL_HOST: ${{ secrets.OUTGOING_EMAIL_HOST }}
+      OUTGOING_EMAIL_PORT: ${{ secrets.OUTGOING_EMAIL_PORT }}
+      OUTGOING_EMAIL_ADDRESS: ${{ secrets.OUTGOING_EMAIL_ADDRESS }}
+      OUTGOING_EMAIL_PASSWORD: ${{ secrets.OUTGOING_EMAIL_PASSWORD }}
+
     permissions:
       actions: write  # Must have repo write access to trigger manually
 
