@@ -16,7 +16,7 @@ import time
 import confluent_kafka
 
 # admin can ONLY  be accessed as import from confluent_kafka
-from confluent_kafka.admin import AdminClient
+from confluent_kafka.admin import AdminClient, NewTopic
 
 
 # Import functions from local modules
@@ -110,7 +110,7 @@ def create_kafka_topic(topic_name, group_id=None):
             logger.info(f"Topic '{topic_name}' exists.")
         else:
             logger.info(f"Creating '{topic_name}'.")
-            new_topic = confluent_kafka.NewTopic(
+            new_topic = NewTopic(
                 topic_name, num_partitions=1, replication_factor=1
             )
             fs = admin_client.create_topics([new_topic])
