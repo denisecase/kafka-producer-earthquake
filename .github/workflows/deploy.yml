@@ -20,11 +20,10 @@ jobs:
 
       kafka:
         image: wurstmeister/kafka:latest
-        container_name: kafka
         ports:
           - 9092:9092
         env:
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
           KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -46,34 +45,25 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Set Kafka Broker Address
-      run: echo "KAFKA_BROKER_ADDRESS=localhost:9092" >> $GITHUB_ENV
-
     - name: Wait for Kafka to be Ready
       run: |
         echo "Waiting for Kafka to be fully up..."
-        for i in {1..30}; do
-          nc -zv localhost 9092 && echo "Kafka is ready." && exit 0
-          echo "Waiting for Kafka to start ($i/30)..."
+        for i in {1..20}; do
+          nc -zv kafka 9092 && echo "Kafka is ready." && break
+          echo "Waiting for Kafka to start ($i/20)..."
           sleep 5
         done
-        echo "ERROR: Kafka did not start in time."
-        exit 1  
-
-    - name: Debug Kafka Connectivity
-      run: |
-        echo "Checking running Docker containers..."
-        docker ps
-        echo "Checking Kafka logs..."
-        docker logs $(docker ps -q --filter "ancestor=wurstmeister/kafka") || echo "Kafka logs unavailable"
-        echo "Testing connectivity to Kafka..."
-        nc -zv localhost 9092 || echo "Kafka not reachable."
-
 
     - name: Run Kafka Producer and Consumer Concurrently
       run: |
         source .venv/bin/activate
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
+
+        # Start producer in the background (& means run asynchronously)
         timeout 20m python3 producers/producer_earthquake.py & 
+        
+        # Start consumer in the background
         timeout 20m python3 consumers/consumer_earthquake.py &
+
+        # Ensure GitHub Actions waits for both processes to complete
         wait
