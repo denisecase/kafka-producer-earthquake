@@ -51,7 +51,7 @@ def process_earthquake_message(data: dict) -> None:
         depth = data.get("depth", "N/A")
 
         # Define what makes an earthquake "interesting"
-        if magnitude >= 2.5:
+        if magnitude >= 4.0:
             msg = (
                 f"ALERT: Earthquake detected!\n"
                 f"Magnitude: {magnitude}\n"

@@ -28,7 +28,7 @@ import sys
 import time
 
 # External modules
-from kafka import KafkaProducer
+import confluent_kafka
 
 # Local utilities
 import utils.utils_config as config
@@ -123,9 +123,8 @@ def main() -> None:
     producer = None
     try:
         verify_services()
-        producer = KafkaProducer(
-            bootstrap_servers=kafka_server,
-            value_serializer=lambda x: json.dumps(x).encode("utf-8"),
+        producer = confluent_kafka.Producer(
+            bootstrap_servers=kafka_server
         )
         create_kafka_topic(topic)
         logger.info(f"Kafka producer connected to {kafka_server}")
@@ -144,7 +143,8 @@ def main() -> None:
 
             # Send to Kafka
             if producer:
-                producer.send(topic, value=message)
+                producer.produce(topic, value=json.dumps(message).encode("utf-8"))
+                producer.flush() # ensure message is sent
                 logger.info(f"Sent message to Kafka topic '{topic}': {message}")
 
             time.sleep(interval_secs)
@@ -155,8 +155,7 @@ def main() -> None:
         logger.error(f"ERROR: Unexpected error: {e}")
     finally:
         if producer:
-            producer.close()
-            logger.info("Kafka producer closed.")
+            producer.flush()
         logger.info("FINALLY: Producer shutting down.")
 
 
