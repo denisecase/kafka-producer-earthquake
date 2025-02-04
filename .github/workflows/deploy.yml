@@ -14,12 +14,6 @@ jobs:
   run-producer:
     runs-on: ubuntu-latest
 
-    env:
-      OUTGOING_EMAIL_HOST: ${{ secrets.OUTGOING_EMAIL_HOST }}
-      OUTGOING_EMAIL_PORT: ${{ secrets.OUTGOING_EMAIL_PORT }}
-      OUTGOING_EMAIL_ADDRESS: ${{ secrets.OUTGOING_EMAIL_ADDRESS }}
-      OUTGOING_EMAIL_PASSWORD: ${{ secrets.OUTGOING_EMAIL_PASSWORD }}
-
     permissions:
       actions: write  # Must have repo write access to trigger manually
 
@@ -83,8 +77,37 @@ jobs:
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
         timeout 20m python3 producers/producer_earthquake.py
 
+  run-consumer:
+    needs: run-producer
+    runs-on: ubuntu-latest
+    if: success() 
+
+    env:
+      OUTGOING_EMAIL_HOST: ${{ secrets.OUTGOING_EMAIL_HOST }}
+      OUTGOING_EMAIL_PORT: ${{ secrets.OUTGOING_EMAIL_PORT }}
+      OUTGOING_EMAIL_ADDRESS: ${{ secrets.OUTGOING_EMAIL_ADDRESS }}
+      OUTGOING_EMAIL_PASSWORD: ${{ secrets.OUTGOING_EMAIL_PASSWORD }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        python3 -m venv .venv
+        source .venv/bin/activate
+        python3 -m pip install --upgrade pip setuptools wheel
+        python3 -m pip install --upgrade -r requirements.txt
+        python3 -m pip list  
+
+    - name: Print Debugging Info (Check if Secrets Are Available)
+      run: |
+        echo "Checking environment variables..."
+        env | grep OUTGOING_EMAIL
+
     - name: Run Kafka Consumer (Limited to 20 Minutes)
       run: |
         source .venv/bin/activate
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
         timeout 20m python3 consumers/consumer_earthquake.py
+        

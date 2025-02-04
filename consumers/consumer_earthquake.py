@@ -25,7 +25,8 @@ import time
 
 # External modules
 from kafka import KafkaConsumer
-from dc_texter import send_text # send myself alerts
+from dc_texter import send_text 
+from dc_mailer import send_mail
 
 # Local utilities
 import utils.utils_config as config
@@ -49,17 +50,28 @@ def process_earthquake_message(data: dict) -> None:
         depth = data.get("depth", "N/A")
 
         # Define what makes an earthquake "interesting"
-        if magnitude >= 1.5:  
+        if magnitude >= 2.5:  
             msg = (f"ALERT: Earthquake detected!\n"
                    f"Magnitude: {magnitude}\n"
                    f"Location: {location}\n"
                    f"Time: {time}\n"
                    f"Coordinates: ({latitude}, {longitude})\n"
                    f"Depth: {depth} km")
-            send_text(msg)
-            logger.info("Sent alert: " + msg)
+            try:
+                logger.info(f"Attempting to send text alert: {msg}")
+                send_text(msg)
+                logger.info("SUCCESS: Sent text alert: " + msg)
+            except Exception as e:
+                logger.warning(f"WARNING: Text alert not sent: {e}")  
+
+            try:
+                logger.info(f"Attempting to send email alert: {msg}")
+                send_mail(subject="Earthquake Alert!", body=msg)
+                logger.info("SUCCESS: Sent email alert: " + msg)
+            except Exception as e:
+                logger.warning(f"WARNING: Email alert not sent: {e}")    
     except Exception as e:
-        logger.error(f"Error processing earthquake data: {e}")
+        logger.error(f"ERROR: Error processing earthquake data: {e}")
 
 #####################################
 # Define Main Function
