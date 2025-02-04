@@ -105,15 +105,9 @@ dc-texter
 # KAFKA MESSAGE BROKER INTEGRATION
 # ======================================================
 
-# Apache Kafka Python client 
-kafka-python
-
 # Kafka needs six which was removed so add it separately
 # But don't get the latest, that won't work with kafka-python
 six==1.16.0
 
-# Alternative: pin the older version of kafka-python.
-# If you want to use the older version of kafka-python,
-# comment out the two lines above and uncomment the line below.
-#kafka-python==2.0.2
-
+# Apache Kafka Python client also needs to be pinned to earlier version 
+kafka-python==2.0.2

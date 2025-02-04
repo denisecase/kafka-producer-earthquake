@@ -100,10 +100,24 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Print Debugging Info (Check if Secrets Are Available)
+    - name: Verify Kafka & Python Packages
+      run: |
+        source .venv/bin/activate
+        python3 -c "import six; print(f'Six version: {six.__version__}')"
+        python3 -c "import kafka; print(f'Kafka version: {kafka.__version__}')"
+        python3 -c "import dc_mailer; print(f'dc_mailer version: {dc_mailer.__version__}')"
+        python3 -c "import dc_texter; print(f'dc_texter version: {dc_texter.__version__}')"
+
+    - name: Check if Secrets Are Available for Alerts
       run: |
         echo "Checking environment variables..."
-        env | grep OUTGOING_EMAIL
+        for var in OUTGOING_EMAIL_HOST OUTGOING_EMAIL_PORT OUTGOING_EMAIL_ADDRESS OUTGOING_EMAIL_PASSWORD; do
+          if [ -z "${!var}" ]; then
+            echo "WARNING: $var is missing!"
+          else
+            echo "$var is set."
+          fi
+        done
 
     - name: Run Kafka Consumer (Limited to 20 Minutes)
       run: |
