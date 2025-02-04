@@ -78,7 +78,6 @@ jobs:
         timeout 20m python3 producers/producer_earthquake.py
 
   run-consumer:
-    needs: run-producer
     runs-on: ubuntu-latest
     if: success() 
 

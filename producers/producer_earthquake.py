@@ -126,7 +126,11 @@ def main() -> None:
         producer = confluent_kafka.Producer(
             bootstrap_servers=kafka_server
         )
-        create_kafka_topic(topic)
+        try:
+            create_kafka_topic(topic)  
+        except Exception as e:
+            logger.error(f"ERROR: Failed to create Kafka topic: {e}")
+            sys.exit(2)
         logger.info(f"Kafka producer connected to {kafka_server}")
     except Exception as e:
         logger.warning(f"WARNING: Kafka connection failed: {e}")
