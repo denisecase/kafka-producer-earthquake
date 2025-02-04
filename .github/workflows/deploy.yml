@@ -50,14 +50,16 @@ jobs:
         echo "Waiting for Kafka to be ready..."
         sleep 30  # Allow some time for Kafka to fully start
 
-    - name: Run Kafka Producer (Limited to 20 Minutes)
+    - name: Run Kafka Producer and Consumer Concurrently
       run: |
         source .venv/bin/activate
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
-        timeout 20m python3 producers/producer_earthquake.py
-
-    - name: Run Kafka Consumer (Limited to 20 Minutes)
-      run: |
-        source .venv/bin/activate
-        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
-        timeout 20m python3 consumers/consumer_earthquake.py
+        
+        # Start producer in the background (& means "run asynchronously")
+        timeout 20m python3 producers/producer_earthquake.py & 
+        
+        # Start consumer in the background
+        timeout 20m python3 consumers/consumer_earthquake.py &
+        
+        # Wait for both to finish (so GitHub Actions doesn't exit early)
+        wait
