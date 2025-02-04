@@ -21,23 +21,22 @@ Example JSON message:
 # Standard library
 import json
 import sys
-import time
+
 
 # External modules
-from dc_texter import send_text 
+from dc_texter import send_text
 from dc_mailer import send_mail
-from kafka import KafkaConsumer  
+import confluent_kafka
 
-import utils.utils_config as config  
-from utils.utils_producer import verify_services, is_topic_available  
-from utils.utils_logger import logger  
+import utils.utils_config as config
+from utils.utils_producer import verify_services, is_topic_available
+from utils.utils_logger import logger
 
-import six
-sys.modules['kafka.vendor.six.moves'] = six.moves
 
 #####################################
 # Define Processing Function
 #####################################
+
 
 def process_earthquake_message(data: dict) -> None:
     """
@@ -52,28 +51,31 @@ def process_earthquake_message(data: dict) -> None:
         depth = data.get("depth", "N/A")
 
         # Define what makes an earthquake "interesting"
-        if magnitude >= 2.5:  
-            msg = (f"ALERT: Earthquake detected!\n"
-                   f"Magnitude: {magnitude}\n"
-                   f"Location: {location}\n"
-                   f"Time: {time}\n"
-                   f"Coordinates: ({latitude}, {longitude})\n"
-                   f"Depth: {depth} km")
+        if magnitude >= 2.5:
+            msg = (
+                f"ALERT: Earthquake detected!\n"
+                f"Magnitude: {magnitude}\n"
+                f"Location: {location}\n"
+                f"Time: {time}\n"
+                f"Coordinates: ({latitude}, {longitude})\n"
+                f"Depth: {depth} km"
+            )
             try:
                 logger.info(f"Attempting to send text alert: {msg}")
                 send_text(msg)
                 logger.info("SUCCESS: Sent text alert: " + msg)
             except Exception as e:
-                logger.warning(f"WARNING: Text alert not sent: {e}")  
+                logger.warning(f"WARNING: Text alert not sent: {e}")
 
             try:
                 logger.info(f"Attempting to send email alert: {msg}")
                 send_mail(subject="Earthquake Alert!", body=msg)
                 logger.info("SUCCESS: Sent email alert: " + msg)
             except Exception as e:
-                logger.warning(f"WARNING: Email alert not sent: {e}")    
+                logger.warning(f"WARNING: Email alert not sent: {e}")
     except Exception as e:
         logger.error(f"ERROR: Error processing earthquake data: {e}")
+
 
 #####################################
 # Define Main Function
@@ -102,12 +104,14 @@ def main() -> None:
         verify_services()
         is_topic_available(topic)
 
-        consumer = KafkaConsumer(
-            topic,
-            bootstrap_servers=kafka_server,
-            auto_offset_reset="earliest",
-            value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+        consumer = confluent_kafka.Consumer(
+            {
+                "bootstrap.servers": kafka_server,
+                "group.id": "earthquake-consumer-group",
+                "auto.offset.reset": "earliest",
+            }
         )
+        consumer.subscribe([topic])
         logger.info(f"Connected to Kafka broker at {kafka_server}")
 
     except Exception as e:
@@ -116,21 +120,23 @@ def main() -> None:
 
     logger.info("STEP 3. Consuming messages from Kafka...")
     try:
-        for message in consumer:
+
+        while True:
+            message = consumer.poll(timeout=interval_secs) 
+            if message is None:
+                continue
+            if message.error():
+                logger.error(f"Consumer error: {message.error()}")
+                continue
             logger.info(f"Received message: {message.value}")
-            print(f"Received: {message.value}")
-
-            # Process the earthquake message
-            process_earthquake_message(message.value)
-
-            time.sleep(interval_secs)
-
+            process_earthquake_message(json.loads(message.value().decode("utf-8")))
+ 
     except KeyboardInterrupt:
         logger.warning("Consumer interrupted by user (CTRL+C).")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
     finally:
-        if 'consumer' in locals() and consumer is not None:
+        if "consumer" in locals() and consumer is not None:
             consumer.close()
             logger.info("Kafka consumer closed.")
 
