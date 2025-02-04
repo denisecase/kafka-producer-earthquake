@@ -1,21 +1,31 @@
 name: Kafka Producer and Consumer (Limited) Deployment
 
 on:
-  push:  
+  push:
     branches:
       - main
-
-  workflow_dispatch: 
-
+  workflow_dispatch:
   schedule:
     - cron: "0 10,14,18 * * 1-5"  # Runs at 10 AM, 2 PM, 6 PM (Mon-Fri)
 
 jobs:
-  run-producer:
+  kafka-test:
     runs-on: ubuntu-latest
 
-    permissions:
-      actions: write  # Must have repo write access to trigger manually
+    services:
+      zookeeper:
+        image: wurstmeister/zookeeper:latest
+        ports:
+          - 2181:2181
+
+      kafka:
+        image: wurstmeister/kafka:latest
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
     steps:
     - name: Checkout repository
@@ -26,56 +36,18 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Kafka from Apache & Start Services
-      run: |
-        # Define Kafka version & download URL
-        KAFKA_VERSION=3.9.0
-        KAFKA_SCALA_VERSION=2.13
-        KAFKA_DIR=/tmp/kafka
-        KAFKA_TGZ="/tmp/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
-        APACHE_KAFKA_URL="https://downloads.apache.org/kafka/$KAFKA_VERSION/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION.tgz"
-
-        # Download Kafka from Apache Kafka's official site
-        echo "Downloading Kafka $KAFKA_VERSION for Scala $KAFKA_SCALA_VERSION..."
-        curl -fsSL -o "$KAFKA_TGZ" "$APACHE_KAFKA_URL"
-
-        # Verify the download was successful
-        if [[ ! -s "$KAFKA_TGZ" ]]; then
-          echo "ERROR: Kafka download failed. Exiting..."
-          exit 1
-        fi
-
-        # Extract Kafka
-        tar -xzf "$KAFKA_TGZ" -C /tmp || { echo "ERROR: Failed to extract Kafka. Exiting..."; exit 1; }
-        mv "/tmp/kafka_$KAFKA_SCALA_VERSION-$KAFKA_VERSION" "$KAFKA_DIR"
-
-        # Start Zookeeper
-        nohup "$KAFKA_DIR/bin/zookeeper-server-start.sh" "$KAFKA_DIR/config/zookeeper.properties" > zookeeper.log 2>&1 &
-        sleep 15  # Wait for Zookeeper to start
-
-        # Start Kafka
-        nohup "$KAFKA_DIR/bin/kafka-server-start.sh" "$KAFKA_DIR/config/server.properties" > kafka.log 2>&1 &
-        sleep 15  # Wait for Kafka to start
-
-        # Log Zookeeper & Kafka Status
-        echo "---- Zookeeper Logs ----"
-        tail -n 20 zookeeper.log
-        echo "---- Kafka Logs ----"
-        tail -n 20 kafka.log
-
     - name: Install dependencies
       run: |
         python3 -m venv .venv
         source .venv/bin/activate
         python3 -m pip install --upgrade pip setuptools wheel
-        python3 -m pip cache purge
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Verify confluent_kafka Installation
+    - name: Wait for Kafka to be Ready
       run: |
-        source .venv/bin/activate
-        python3 -c "import confluent_kafka; print(confluent_kafka.__version__)"
+        echo "Waiting for Kafka to be ready..."
+        sleep 30  # Allow some time for Kafka to fully start
 
     - name: Run Kafka Producer (Limited to 20 Minutes)
       run: |
@@ -83,51 +55,8 @@ jobs:
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
         timeout 20m python3 producers/producer_earthquake.py
 
-  run-consumer:
-    runs-on: ubuntu-latest
-    if: success() 
-
-    env:
-      OUTGOING_EMAIL_HOST: ${{ secrets.OUTGOING_EMAIL_HOST }}
-      OUTGOING_EMAIL_PORT: ${{ secrets.OUTGOING_EMAIL_PORT }}
-      OUTGOING_EMAIL_ADDRESS: ${{ secrets.OUTGOING_EMAIL_ADDRESS }}
-      OUTGOING_EMAIL_PASSWORD: ${{ secrets.OUTGOING_EMAIL_PASSWORD }}
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        python3 -m venv .venv
-        source .venv/bin/activate
-        python3 -m pip install --upgrade pip setuptools wheel
-        python3 -m pip cache purge
-        python3 -m pip install --upgrade -r requirements.txt
-        python3 -m pip list  
-
-    - name: Verify confluent_kafka Installation
-      run: |
-        source .venv/bin/activate
-        python3 -c "import confluent_kafka; print(confluent_kafka.__version__)"
-
-    - name: Check if Secrets Are Available for Alerts
-      run: |
-        echo "Checking environment variables..."
-        for var in OUTGOING_EMAIL_HOST OUTGOING_EMAIL_PORT OUTGOING_EMAIL_ADDRESS OUTGOING_EMAIL_PASSWORD; do
-          if [ -z "${!var}" ]; then
-            echo "WARNING: $var is missing. Please add it to the repository secrets."
-          else
-            echo "$var is set."
-          fi
-        done
-
-    - name: Give Producer a Head Start
-      run: sleep 180
-
     - name: Run Kafka Consumer (Limited to 20 Minutes)
       run: |
         source .venv/bin/activate
         export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
         timeout 20m python3 consumers/consumer_earthquake.py
-        
