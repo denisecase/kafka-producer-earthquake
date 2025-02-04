@@ -20,6 +20,7 @@ jobs:
 
       kafka:
         image: wurstmeister/kafka:latest
+        container_name: kafka
         ports:
           - 9092:9092
         env:
@@ -45,36 +46,34 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Ensure Kafka is Fully Ready
-      run: |
-        echo "Waiting for Kafka to be fully ready..."
-        for i in {1..20}; do
-          kafka_status=$(echo dump | nc localhost 9092 || echo "failed")
-          if [[ $kafka_status != "failed" ]]; then
-            echo "Kafka is ready!"
-            break
-          fi
-          echo "Waiting for Kafka... ($i/20)"
-          sleep 5
-        done
-
-    - name: Set Kafka Broker Address for GitHub Actions
+    - name: Set Kafka Broker Address
       run: echo "KAFKA_BROKER_ADDRESS=localhost:9092" >> $GITHUB_ENV
 
-    - name: Create Kafka Topic Before Producer Starts
+    - name: Wait for Kafka to be Ready
       run: |
-        source .venv/bin/activate
-        kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic earthquake-events
-        echo "Kafka topic 'earthquake-events' created."
+        echo "Waiting for Kafka to be fully up..."
+        for i in {1..30}; do
+          nc -zv localhost 9092 && echo "Kafka is ready." && exit 0
+          echo "Waiting for Kafka to start ($i/30)..."
+          sleep 5
+        done
+        echo "ERROR: Kafka did not start in time."
+        exit 1  
+
+    - name: Debug Kafka Connectivity
+      run: |
+        echo "Checking running Docker containers..."
+        docker ps
+        echo "Checking Kafka logs..."
+        docker logs $(docker ps -q --filter "ancestor=wurstmeister/kafka") || echo "Kafka logs unavailable"
+        echo "Testing connectivity to Kafka..."
+        nc -zv localhost 9092 || echo "Kafka not reachable."
+
 
     - name: Run Kafka Producer and Consumer Concurrently
       run: |
         source .venv/bin/activate
-        export PYTHONPATH="$PYTHONPATH:$(pwd)"
-
-        # Start producer and consumer in parallel
+        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
         timeout 20m python3 producers/producer_earthquake.py & 
         timeout 20m python3 consumers/consumer_earthquake.py &
-
-        # Wait for both processes to finish
         wait
