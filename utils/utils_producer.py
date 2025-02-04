@@ -44,7 +44,7 @@ def check_kafka_service_is_ready():
             return True
         else:
             logger.warning("Kafka is running, but no topics are available.")
-            return False            
+            return True            
     except Exception as e:
         logger.error(f"Error checking Kafka: {e}")
         return False
