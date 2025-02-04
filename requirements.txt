@@ -105,17 +105,10 @@ dc-texter
 # KAFKA MESSAGE BROKER INTEGRATION
 # ======================================================
 
-# Kafka needs six which was removed so add it separately
-# But don't get the latest, that won't work with kafka-python
-six==1.16.0
-
 # Apache Kafka Python client also needs to be pinned to earlier version 
+six==1.16.0
 kafka-python==2.0.2
 
-# ======================================================
-# SIX FIX
-# ======================================================
-dc-kafka-python-six-fix
 
 # Next time, maybe move to 
 # confluent-kafka
