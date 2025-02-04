@@ -112,7 +112,7 @@ jobs:
         done
 
     - name: Give Producer a Head Start
-      run: sleep 120 # wait 2 minutes
+      run: sleep 180
 
     - name: Run Kafka Consumer (Limited to 20 Minutes)
       run: |

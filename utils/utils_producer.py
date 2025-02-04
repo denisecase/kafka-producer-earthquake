@@ -10,9 +10,11 @@ Producers send messages to a Kafka topic.
 
 # Import packages from Python Standard Library
 import sys
+import time
 
-# Import external packages 
+# Import external packages
 import confluent_kafka
+
 # admin can ONLY  be accessed as import from confluent_kafka
 from confluent_kafka.admin import AdminClient
 
@@ -36,15 +38,17 @@ def check_kafka_service_is_ready():
     kafka_broker = get_kafka_broker_address()
 
     try:
-        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
+        admin_client = AdminClient({"bootstrap.servers": kafka_broker})
         # Fetch metadata to check if Kafka is up
         cluster_metadata = admin_client.list_topics(timeout=5)
         if cluster_metadata.topics:
-            logger.info(f"Kafka is ready. Available topics: {list(cluster_metadata.topics.keys())}")
+            logger.info(
+                f"Kafka is ready. Available topics: {list(cluster_metadata.topics.keys())}"
+            )
             return True
         else:
             logger.warning("Kafka is running, but no topics are available.")
-            return True            
+            return True
     except Exception as e:
         logger.error(f"Error checking Kafka: {e}")
         return False
@@ -69,34 +73,18 @@ def verify_services():
 #####################################
 
 
-def create_kafka_producer(value_serializer=None):
+def create_kafka_producer(kafka_server):
     """
-    Create and return a Kafka producer instance.
-
-    Args:
-        value_serializer (callable): A custom serializer for message values.
-                                     Defaults to UTF-8 string encoding.
-
+    Initialize Kafka producer.
     Returns:
-        KafkaProducer: Configured Kafka producer instance.
+        Producer object or None if failed.
     """
-    kafka_broker = get_kafka_broker_address()
-
-    if value_serializer is None:
-
-        def value_serializer(x):
-            return x.encode("utf-8")  # Default to string serialization
-
     try:
-        logger.info(f"Connecting to Kafka broker at {kafka_broker}...")
-        producer = confluent_kafka.Producer(
-            bootstrap_servers=kafka_broker,
-            value_serializer=value_serializer,
-        )
-        logger.info("Kafka producer successfully created.")
+        verify_services()
+        producer = confluent_kafka.Producer({"bootstrap.servers": kafka_server})
         return producer
     except Exception as e:
-        logger.error(f"Failed to create Kafka producer: {e}")
+        logger.warning(f"WARNING: Kafka connection failed: {e}")
         return None
 
 
@@ -114,7 +102,7 @@ def create_kafka_topic(topic_name, group_id=None):
     kafka_broker = get_kafka_broker_address()
 
     try:
-        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
+        admin_client = AdminClient({"bootstrap.servers": kafka_broker})
 
         # Check if the topic exists
         topics = admin_client.list_topics(timeout=5).topics
@@ -138,40 +126,25 @@ def create_kafka_topic(topic_name, group_id=None):
         sys.exit(1)
 
 
-
 #####################################
-# Find Out if a Kafka Topic Exists
+# Find Out if Topic is Available
 #####################################
 
 
-def is_topic_available(topic_name) -> bool:
+def is_topic_available(topic) -> bool:
     """
-    Verify a kafka topic exists with the given name.
-    Args:
-        topic_name (str): Name of the Kafka topic.
-    Returns:
-        bool: True if the topic exists, False otherwise.
+    Ensure Kafka topic is created before producing messages.
+    Retries up to 5 times if topic creation fails.
     """
-    kafka_broker = get_kafka_broker_address()
-
-    try:
-        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
-
-        # Check if the topic exists
-        cluster_metadata = admin_client.list_topics(timeout=5)
-        topics = cluster_metadata.topics.keys()
-        if topic_name in topics:
-            logger.info(f"Topic '{topic_name}' already exists. ")
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            create_kafka_topic(topic)
             return True
-        else:
-            logger.error(f"Topic '{topic_name}' does not exist.")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error verifying topic '{topic_name}': {e}")
-        sys.exit(8)
-
-
+        except Exception as e:
+            logger.warning(f"Retrying topic creation ({attempt+1}/{max_retries}): {e}")
+            time.sleep(5)
+    return False
 
 
 #####################################

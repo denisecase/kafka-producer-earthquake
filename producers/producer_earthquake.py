@@ -27,20 +27,23 @@ import requests
 import sys
 import time
 
-# External modules
-import confluent_kafka
-
 # Local utilities
 import utils.utils_config as config
-from utils.utils_producer import verify_services, create_kafka_topic
+from utils.utils_producer import create_kafka_producer, is_topic_available
 from utils.utils_logger import logger
+
+#####################################
+# INITIALIZE
+#####################################
+
+start_time = time.time()
+timeout = 20 * 60  # 20 minutes in seconds
+
+USGS_API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
 #####################################
 # Define Function to Fetch Earthquake Data
 #####################################
-
-
-USGS_API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
 
 def fetch_earthquake_data():
@@ -90,6 +93,45 @@ def fetch_earthquake_data():
         return []
 
 
+
+#####################################
+# Stream Earthquake Data
+#####################################
+
+
+def stream_earthquake_data(producer, topic, live_data_path, interval_secs):
+    """
+    Continuously fetch and send earthquake data to Kafka topic.
+    Runs for a set timeout (20 minutes).
+    """
+    message_count = 0  # Track messages for periodic flushing
+
+    while time.time() - start_time < timeout:
+        earthquakes = fetch_earthquake_data()
+        for message in earthquakes:
+            logger.info(message)
+
+            with live_data_path.open("a") as f:
+                f.write(json.dumps(message) + "\n")
+                logger.info(f"Wrote message to file: {message}")
+
+            if producer:
+                producer.produce(topic, value=json.dumps(message).encode("utf-8"))
+                message_count += 1
+
+            # Flush producer every 10 messages for efficiency
+            if producer and message_count % 10 == 0:
+                producer.flush()
+
+        time.sleep(interval_secs)
+
+    logger.info("Producer finished execution. Waiting before shutdown.")
+    time.sleep(10)  # Allow logs to settle
+    if producer:
+        producer.flush()
+    logger.info("FINALLY: Producer shutting down.")
+
+
 #####################################
 # Define Main Function
 #####################################
@@ -113,54 +155,33 @@ def main() -> None:
         if live_data_path.exists():
             live_data_path.unlink()
             logger.info("Deleted existing live data file.")
-        logger.info("STEP 3. Build the path folders to the live data file if needed.")
+        logger.info("Build the path folders to the live data file if needed.")
         os.makedirs(live_data_path.parent, exist_ok=True)
     except Exception as e:
         logger.error(f"ERROR: Failed to reset live data file: {e}")
         sys.exit(2)
 
-    logger.info("STEP 4. Create a Kafka producer and topic.")
-    producer = None
+    logger.info("STEP 3. Initialize Kafka producer.")
+    producer = create_kafka_producer(kafka_server)
+
+    if not producer:
+        logger.error("ERROR: Kafka producer could not be initialized. Exiting.")
+        sys.exit(3)
+
+    logger.info("STEP 4. Ensure Kafka topic exists.")
+    if not is_topic_available(topic):
+        logger.error("ERROR: Kafka topic could not be created. Exiting.")
+        sys.exit(4)
+
+    logger.info("STEP 5. Start streaming earthquake data.")
     try:
-        verify_services()
-        producer = confluent_kafka.Producer(
-            bootstrap_servers=kafka_server
-        )
-        try:
-            create_kafka_topic(topic)  
-        except Exception as e:
-            logger.error(f"ERROR: Failed to create Kafka topic: {e}")
-            sys.exit(2)
-        logger.info(f"Kafka producer connected to {kafka_server}")
-    except Exception as e:
-        logger.warning(f"WARNING: Kafka connection failed: {e}")
-        producer = None
-
-    logger.info("STEP 5. Stream earthquake data.")
-    try:
-        for message in fetch_earthquake_data():
-            logger.info(message)
-
-            with live_data_path.open("a") as f:
-                f.write(json.dumps(message) + "\n")
-                logger.info(f"Wrote message to file: {message}")
-
-            # Send to Kafka
-            if producer:
-                producer.produce(topic, value=json.dumps(message).encode("utf-8"))
-                producer.flush() # ensure message is sent
-                logger.info(f"Sent message to Kafka topic '{topic}': {message}")
-
-            time.sleep(interval_secs)
-
+        stream_earthquake_data(producer, topic, live_data_path, interval_secs)
     except KeyboardInterrupt:
         logger.warning("WARNING: Producer interrupted by user.")
     except Exception as e:
         logger.error(f"ERROR: Unexpected error: {e}")
     finally:
-        if producer:
-            producer.flush()
-        logger.info("FINALLY: Producer shutting down.")
+        logger.info("Producer shutting down.")
 
 
 #####################################
