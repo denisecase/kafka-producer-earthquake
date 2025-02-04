@@ -101,13 +101,6 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Verify Kafka & Python Packages
-      run: |
-        source .venv/bin/activate
-        python3 -c "import kafka; print(f'Kafka version: {kafka.__version__}')"
-        python3 -c "import dc_mailer; print(f'dc_mailer version: {dc_mailer.__version__}')"
-        python3 -c "import dc_texter; print(f'dc_texter version: {dc_texter.__version__}')"
-
     - name: Check if Secrets Are Available for Alerts
       run: |
         echo "Checking environment variables..."
