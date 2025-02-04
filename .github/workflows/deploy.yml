@@ -104,7 +104,6 @@ jobs:
     - name: Verify Kafka & Python Packages
       run: |
         source .venv/bin/activate
-        python3 -c "import six; print(f'Six version: {six.__version__}')"
         python3 -c "import kafka; print(f'Kafka version: {kafka.__version__}')"
         python3 -c "import dc_mailer; print(f'dc_mailer version: {dc_mailer.__version__}')"
         python3 -c "import dc_texter; print(f'dc_texter version: {dc_texter.__version__}')"
