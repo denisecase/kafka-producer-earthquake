@@ -11,8 +11,11 @@ Producers send messages to a Kafka topic.
 # Import packages from Python Standard Library
 import sys
 
-# Import external packages
+# Import external packages 
 import confluent_kafka
+# admin can ONLY  be accessed as import from confluent_kafka
+from confluent_kafka.admin import AdminClient
+
 
 # Import functions from local modules
 from .utils_config import get_kafka_broker_address
@@ -33,7 +36,7 @@ def check_kafka_service_is_ready():
     kafka_broker = get_kafka_broker_address()
 
     try:
-        admin_client = confluent_kafka.AdminClient(bootstrap_servers=kafka_broker)
+        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
         # Fetch metadata to check if Kafka is up
         cluster_metadata = admin_client.list_topics(timeout=5)
 
@@ -114,7 +117,7 @@ def create_kafka_topic(topic_name, group_id=None):
     kafka_broker = get_kafka_broker_address()
 
     try:
-        admin_client = confluent_kafka.AdminClient(bootstrap_servers=kafka_broker)
+        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
 
         # Check if the topic exists
         topics = admin_client.list_topics(timeout=5).topics
@@ -155,10 +158,11 @@ def is_topic_available(topic_name) -> bool:
     kafka_broker = get_kafka_broker_address()
 
     try:
-        admin_client = confluent_kafka.AdminClient(bootstrap_servers=kafka_broker)
+        admin_client = AdminClient({'bootstrap.servers': kafka_broker})
 
         # Check if the topic exists
-        topics = admin_client.list_topics()
+        cluster_metadata = admin_client.list_topics(timeout=5)
+        topics = cluster_metadata.topics.keys()
         if topic_name in topics:
             logger.info(f"Topic '{topic_name}' already exists. ")
             return True
@@ -170,8 +174,7 @@ def is_topic_available(topic_name) -> bool:
         logger.error(f"Error verifying topic '{topic_name}': {e}")
         sys.exit(8)
 
-    finally:
-        admin_client.close()
+
 
 
 #####################################
