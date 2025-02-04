@@ -102,14 +102,10 @@ dc-mailer
 dc-texter
 
 # ======================================================
-# KAFKA MESSAGE BROKER INTEGRATION
+# Kafka Python Client Old Pre-Six Issue Version
 # ======================================================
 
-# Apache Kafka Python client also needs to be pinned to earlier version 
-six==1.16.0
-kafka-python==2.0.2
+kafka-python==1.4.7
 
-
-# Next time, maybe move to 
-# confluent-kafka
-# But it will break the consumer code....
+# Next time, move to 
+# confluent-kafka or Redpanda's Kafka client
