@@ -21,6 +21,7 @@ Example JSON message:
 # Standard library
 import json
 import sys
+import time
 
 
 # External modules
@@ -32,6 +33,8 @@ import utils.utils_config as config
 from utils.utils_producer import verify_services, is_topic_available
 from utils.utils_logger import logger
 
+timeout_secs = 240  # 4 minutes
+start_time = time.time()
 
 #####################################
 # Define Processing Function
@@ -102,7 +105,11 @@ def main() -> None:
     logger.info("STEP 2. Verify Kafka services and create consumer.")
     try:
         verify_services()
-        is_topic_available(topic)
+        while time.time() - start_time < timeout_secs:
+            if is_topic_available(topic):  # ✅ Keep checking if topic exists
+                 break
+            logger.warning(f"Topic '{topic}' not found. Retrying in 10 seconds...")
+            time.sleep(10)  # Retry every 10 seconds
 
         consumer = confluent_kafka.Consumer(
             {

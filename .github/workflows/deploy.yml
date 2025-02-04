@@ -111,6 +111,9 @@ jobs:
           fi
         done
 
+    - name: Give Producer a Head Start
+      run: sleep 120 # wait 2 minutes
+
     - name: Run Kafka Consumer (Limited to 20 Minutes)
       run: |
         source .venv/bin/activate
