@@ -102,10 +102,12 @@ dc-mailer
 dc-texter
 
 # ======================================================
-# Kafka Python Client Old Pre-Six Issue Version
+# Kafka Python Client (needs six first)
 # ======================================================
 
-kafka-python==1.4.7
+six==1.15.0 # more compatible with 2.0.2
+# Kafka Python Client
+kafka-python==2.0.2
 
 # Next time, move to 
 # confluent-kafka or Redpanda's Kafka client
