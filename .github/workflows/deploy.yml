@@ -28,7 +28,14 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+
     steps:
+    - name: Set Kafka Broker Address
+      run: |
+        echo "KAFKA_BROKER_ADDRESS=127.0.0.1:9092" >> $GITHUB_ENV
+        echo "KAFKA_BROKER_ADDRESS_LOCAL=localhost:9092" >> $GITHUB_ENV
+        echo "KAFKA_BROKER_ADDRESS_DOCKER=kafka:9092" >> $GITHUB_ENV
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -62,8 +69,12 @@ jobs:
         # Start producer in the background (& means run asynchronously)
         timeout 20m python3 producers/producer_earthquake.py & 
         
-        # Start consumer in the background
-        timeout 20m python3 consumers/consumer_earthquake.py &
-
+        # Start consumer and try different Kafka broker addresses in order
+        for broker in "$KAFKA_BROKER_ADDRESS" "$KAFKA_BROKER_ADDRESS_LOCAL" "$KAFKA_BROKER_ADDRESS_DOCKER"; do
+          echo "Trying consumer with Kafka broker: $broker"
+          export KAFKA_BROKER=$broker
+          timeout 20m python3 consumers/consumer_earthquake.py && break || echo "Failed with broker: $broker"
+        done
+        
         # Ensure GitHub Actions waits for both processes to complete
         wait
