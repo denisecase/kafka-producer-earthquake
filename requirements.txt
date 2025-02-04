@@ -111,3 +111,7 @@ six==1.16.0
 
 # Apache Kafka Python client also needs to be pinned to earlier version 
 kafka-python==2.0.2
+
+# Next time, maybe move to 
+# confluent-kafka
+# But it will break the consumer code....
