@@ -23,7 +23,7 @@ jobs:
         ports:
           - 9092:9092
         env:
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
           KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -45,30 +45,36 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Wait for Kafka to be Fully Ready
+    - name: Ensure Kafka is Fully Ready
       run: |
         echo "Waiting for Kafka to be fully ready..."
         for i in {1..20}; do
-          nc -zv kafka 9092 && echo "Kafka is ready!" && break
+          kafka_status=$(echo dump | nc localhost 9092 || echo "failed")
+          if [[ $kafka_status != "failed" ]]; then
+            echo "Kafka is ready!"
+            break
+          fi
           echo "Waiting for Kafka... ($i/20)"
           sleep 5
         done
 
     - name: Set Kafka Broker Address for GitHub Actions
-      run: echo "KAFKA_BROKER_ADDRESS=kafka:9092" >> $GITHUB_ENV
+      run: echo "KAFKA_BROKER_ADDRESS=localhost:9092" >> $GITHUB_ENV
 
-    - name: Run Kafka Producer
+    - name: Create Kafka Topic Before Producer Starts
+      run: |
+        source .venv/bin/activate
+        kafka-topics.sh --create --if-not-exists --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic earthquake-events
+        echo "Kafka topic 'earthquake-events' created."
+
+    - name: Run Kafka Producer and Consumer Concurrently
       run: |
         source .venv/bin/activate
         export PYTHONPATH="$PYTHONPATH:$(pwd)"
-        timeout 20m python3 producers/producer_earthquake.py &
 
-    - name: Wait for Producer to Confirm Messages Sent
-      run: sleep 30 # Ensure producer has sent at least one message
+        # Start producer and consumer in parallel
+        timeout 20m python3 producers/producer_earthquake.py & 
+        timeout 20m python3 consumers/consumer_earthquake.py &
 
-    - name: Run Kafka Consumer
-      run: |
-        source .venv/bin/activate
-        export PYTHONPATH="$PYTHONPATH:$(pwd)"
-        timeout 20m python3 consumers/consumer_earthquake.py
-        
+        # Wait for both processes to finish
+        wait
