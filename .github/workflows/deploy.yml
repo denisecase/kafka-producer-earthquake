@@ -45,25 +45,30 @@ jobs:
         python3 -m pip install --upgrade -r requirements.txt
         python3 -m pip list  
 
-    - name: Wait for Kafka to be Ready
+    - name: Wait for Kafka to be Fully Ready
       run: |
-        echo "Waiting for Kafka to be fully up..."
+        echo "Waiting for Kafka to be fully ready..."
         for i in {1..20}; do
           nc -zv kafka 9092 && echo "Kafka is ready!" && break
-          echo "Waiting for Kafka to start ($i/20)..."
+          echo "Waiting for Kafka... ($i/20)"
           sleep 5
         done
 
-    - name: Run Kafka Producer and Consumer Concurrently
+    - name: Set Kafka Broker Address for GitHub Actions
+      run: echo "KAFKA_BROKER_ADDRESS=kafka:9092" >> $GITHUB_ENV
+
+    - name: Run Kafka Producer
       run: |
         source .venv/bin/activate
-        export PYTHONPATH="$PYTHONPATH:$(pwd)"  # Local imports
+        export PYTHONPATH="$PYTHONPATH:$(pwd)"
+        timeout 20m python3 producers/producer_earthquake.py &
 
-        # Start producer in the background (& means run asynchronously)
-        timeout 20m python3 producers/producer_earthquake.py & 
+    - name: Wait for Producer to Confirm Messages Sent
+      run: sleep 30 # Ensure producer has sent at least one message
+
+    - name: Run Kafka Consumer
+      run: |
+        source .venv/bin/activate
+        export PYTHONPATH="$PYTHONPATH:$(pwd)"
+        timeout 20m python3 consumers/consumer_earthquake.py
         
-        # Start consumer in the background
-        timeout 20m python3 consumers/consumer_earthquake.py &
-
-        # Ensure GitHub Actions waits for both processes to complete
-        wait
