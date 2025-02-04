@@ -39,16 +39,13 @@ def check_kafka_service_is_ready():
         admin_client = AdminClient({'bootstrap.servers': kafka_broker})
         # Fetch metadata to check if Kafka is up
         cluster_metadata = admin_client.list_topics(timeout=5)
-
         if cluster_metadata.topics:
-            logger.info(
-                f"Kafka is ready. Available topics: {list(cluster_metadata.topics.keys())}"
-            )
+            logger.info(f"Kafka is ready. Available topics: {list(cluster_metadata.topics.keys())}")
             return True
         else:
             logger.warning("Kafka is running, but no topics are available.")
-
-    except confluent_kafka.KafkaException as e:
+            return False            
+    except Exception as e:
         logger.error(f"Error checking Kafka: {e}")
         return False
 
