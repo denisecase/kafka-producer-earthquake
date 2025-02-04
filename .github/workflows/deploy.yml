@@ -106,7 +106,7 @@ jobs:
         echo "Checking environment variables..."
         for var in OUTGOING_EMAIL_HOST OUTGOING_EMAIL_PORT OUTGOING_EMAIL_ADDRESS OUTGOING_EMAIL_PASSWORD; do
           if [ -z "${!var}" ]; then
-            echo "WARNING: $var is missing!"
+            echo "WARNING: $var is missing. Please add it to the repository secrets."
           else
             echo "$var is set."
           fi
