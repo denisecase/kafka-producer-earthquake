@@ -24,14 +24,15 @@ import sys
 import time
 
 # External modules
-from kafka import KafkaConsumer
 from dc_texter import send_text 
 from dc_mailer import send_mail
+from dc_kafka_python_six_fix import fix_six
+fix_six() 
+from kafka import KafkaConsumer  # noqa: E402
 
-# Local utilities
-import utils.utils_config as config
-from utils.utils_producer import verify_services, is_topic_available
-from utils.utils_logger import logger
+import utils.utils_config as config  # noqa: E402
+from utils.utils_producer import verify_services, is_topic_available  # noqa: E402
+from utils.utils_logger import logger  # noqa: E402
 
 #####################################
 # Define Processing Function
