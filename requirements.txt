@@ -106,3 +106,4 @@ dc-texter
 # ======================================================
 
 confluent-kafka
+kafka-python

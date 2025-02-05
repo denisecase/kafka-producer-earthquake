@@ -1,88 +1,31 @@
 """
-consumer_earthquake.py
+consumers/consumer_earthquake.py
 
-Consumes real-time earthquake data from a cloud-hosted Kafka topic.
-
-Example JSON message:
-{
-    "magnitude": 2.75,
-    "location": "8 km SSE of Maria Antonia, Puerto Rico",
-    "latitude": 17.9155,
-    "longitude": -66.8498333333333,
-    "depth": 13.42,
-    "time": "2025-02-02T00:24:43.990000"
-}
+Consume earthquake data from a Kafka topic and send alerts.
 """
 
-#####################################
-# Import Modules
-#####################################
-
-# Standard library
-import json
 import sys
-import time
-
-
-# External modules
-from dc_texter import send_text
-from dc_mailer import send_mail
-import confluent_kafka
 
 import utils.utils_config as config
-from utils.utils_producer import verify_services, is_topic_available
+from utils.utils_consumer import create_kafka_consumer, consume_messages, verify_services
 from utils.utils_logger import logger
-
-timeout_secs = 240  # 4 minutes
-start_time = time.time()
-
-#####################################
-# Define Processing Function
-#####################################
-
+from consumers.earthquake_alerts import send_earthquake_alert
 
 def process_earthquake_message(data: dict) -> None:
     """
-    Process earthquake data and send an alert if it meets criteria.
+    Process earthquake data and send alerts as appropriate.
     """
     try:
-        magnitude = data.get("magnitude", 0)
-        location = data.get("location", "Unknown location")
-        time = data.get("time", "Unknown time")
-        latitude = data.get("latitude", "N/A")
-        longitude = data.get("longitude", "N/A")
-        depth = data.get("depth", "N/A")
-
-        # Define what makes an earthquake "interesting"
-        if magnitude >= 4.0:
-            msg = (
-                f"ALERT: Earthquake detected!\n"
-                f"Magnitude: {magnitude}\n"
-                f"Location: {location}\n"
-                f"Time: {time}\n"
-                f"Coordinates: ({latitude}, {longitude})\n"
-                f"Depth: {depth} km"
-            )
-            try:
-                logger.info(f"Attempting to send text alert: {msg}")
-                send_text(msg)
-                logger.info("SUCCESS: Sent text alert: " + msg)
-            except Exception as e:
-                logger.warning(f"WARNING: Text alert not sent: {e}")
-
-            try:
-                logger.info(f"Attempting to send email alert: {msg}")
-                send_mail(subject="Earthquake Alert!", body=msg)
-                logger.info("SUCCESS: Sent email alert: " + msg)
-            except Exception as e:
-                logger.warning(f"WARNING: Email alert not sent: {e}")
+        send_earthquake_alert(
+            magnitude=data.get("magnitude", 0),
+            location=data.get("location", "Unknown location"),
+            event_time=data.get("time", "Unknown time"),
+            latitude=data.get("latitude", "N/A"),
+            longitude=data.get("longitude", "N/A"),
+            depth=data.get("depth", "N/A"),
+        )
     except Exception as e:
-        logger.error(f"ERROR: Error processing earthquake data: {e}")
-
-
-#####################################
-# Define Main Function
-#####################################
+        logger.error(f"Error processing earthquake message: {e}")
 
 
 def main() -> None:
@@ -91,68 +34,22 @@ def main() -> None:
     """
     logger.info("Starting Kafka Consumer...")
 
-    logger.info("STEP 1. Read environment variables.")
+    logger.info("Reading environment variables...")
     try:
-        interval_secs: int = config.get_message_interval_seconds_as_int()
-        topic: str = config.get_kafka_topic()
-        kafka_server: str = config.get_kafka_broker_address()
+        interval_secs = config.get_message_interval_seconds_as_int()
+        topic = config.get_kafka_topic()
     except Exception as e:
-        logger.error(f"ERROR: Failed to load environment variables: {e}")
+        logger.error(f"Failed to load environment variables: {e}")
         sys.exit(1)
 
-    logger.info(f"Using Kafka broker: {kafka_server}, Topic: {topic}")
+    verify_services()
 
-    logger.info("STEP 2. Verify Kafka services and create consumer.")
-    try:
-        verify_services()
-        while time.time() - start_time < timeout_secs:
-            if is_topic_available(topic):  # ✅ Keep checking if topic exists
-                 break
-            logger.warning(f"Topic '{topic}' not found. Retrying in 10 seconds...")
-            time.sleep(10)  # Retry every 10 seconds
+    logger.info("Creating Kafka consumer...")
+    consumer = create_kafka_consumer(topic)
 
-        consumer = confluent_kafka.Consumer(
-            {
-                "bootstrap.servers": kafka_server,
-                "group.id": "earthquake-consumer-group",
-                "auto.offset.reset": "earliest",
-            }
-        )
-        consumer.subscribe([topic])
-        logger.info(f"Connected to Kafka broker at {kafka_server}")
+    logger.info("Consuming messages from Kafka...")
+    consume_messages(consumer, process_earthquake_message, interval_secs)
 
-    except Exception as e:
-        logger.error(f"ERROR: Failed to connect to Kafka: {e}")
-        sys.exit(2)
-
-    logger.info("STEP 3. Consuming messages from Kafka...")
-    try:
-
-        while True:
-            message = consumer.poll(timeout=interval_secs) 
-            if message is None:
-                continue
-            if message.error():
-                logger.error(f"Consumer error: {message.error()}")
-                continue
-            logger.info(f"Received message: {message.value}")
-            process_earthquake_message(json.loads(message.value().decode("utf-8")))
- 
-    except KeyboardInterrupt:
-        logger.warning("Consumer interrupted by user (CTRL+C).")
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-    finally:
-        if "consumer" in locals() and consumer is not None:
-            consumer.close()
-            logger.info("Kafka consumer closed.")
-
-        logger.info("Consumer shutting down.")
-
-
-#####################################
-# Conditional Execution
-#####################################
 
 if __name__ == "__main__":
     main()

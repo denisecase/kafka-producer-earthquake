@@ -1,7 +1,7 @@
 """
-producer_earthquake.py
+producers/producer_earthquake.py
 
-Fetch real-time earthquake data from USGS API and stream it to a file and Kafka topic.
+Fetch real-time earthquake data from the USGS API and stream it to Kafka.
 
 Example JSON message:
 {
@@ -10,183 +10,150 @@ Example JSON message:
     "latitude": 17.9155,
     "longitude": -66.8498333333333,
     "depth": 13.42,
-    "time": "2025-02-02T00:24:43.990000",
+    "time": "2025-02-02T00:24:43.990000"
 }
 """
-
-#####################################
-# Import Modules
-#####################################
 
 # Standard library
 from datetime import datetime, timezone
 import json
-import os
 import pathlib
 import requests
 import sys
 import time
 
 # Local utilities
-import utils.utils_config as config
-from utils.utils_producer import create_kafka_producer, is_topic_available
 from utils.utils_logger import logger
+from utils.utils_connector import KAFKA_TOPIC,send_kafka_message
+from utils.utils_producer import (
+    create_kafka_producer,
+    ensure_topic_exists,
+    verify_services,
+)
+import utils.utils_config as config
 
-#####################################
-# INITIALIZE
-#####################################
-
+# Initialize
 start_time = time.time()
-timeout = 20 * 60  # 20 minutes in seconds
+timeout = 20 * 60  # 20 minutes
 
 USGS_API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
-#####################################
-# Define Function to Fetch Earthquake Data
-#####################################
-
 
 def fetch_earthquake_data():
-    """
-    Fetch real-time earthquake data from the USGS API.
-    Returns a list of earthquake events.
-    """
+    """Fetch real-time earthquake data from USGS API."""
     params = {
         "format": "geojson",
         "limit": 5,  # Fetch last 5 events
-        "minmagnitude": 2.5,  # Filter out very minor quakes
+        "minmagnitude": 2.5,
         "orderby": "time",
     }
 
     try:
-        url: str = config.get_source_data_url() or USGS_API_URL
-
+        url = config.get_source_data_url() or USGS_API_URL
         response = requests.get(url, params=params)
-
-        # Raise an error for HTTP issues
         response.raise_for_status()
-
-        # Parse JSON response into a dictionary
         data = response.json()
 
-        earthquakes = []
-        for feature in data["features"]:
-            properties = feature["properties"]
-            geometry = feature["geometry"]
+        logger.info(f"Raw earthquake data: {data}")  # Log raw data to inspect
 
-            earthquake = {
-                "magnitude": properties.get("mag"),
-                "location": properties.get("place"),
-                "latitude": geometry["coordinates"][1],
-                "longitude": geometry["coordinates"][0],
-                "depth": geometry["coordinates"][2],
+
+         # Return earthquakes where magnitude is greater than 0
+        return [
+            {
+                "magnitude": feature["properties"].get("mag", 0) if feature["properties"].get("mag") else 0,
+                "location": feature["properties"].get("place", "Unknown location"),
+                "latitude": feature["geometry"]["coordinates"][1],
+                "longitude": feature["geometry"]["coordinates"][0],
+                "depth": feature["geometry"]["coordinates"][2],
                 "time": datetime.fromtimestamp(
-                    properties["time"] / 1000, tz=timezone.utc
+                    feature["properties"]["time"] / 1000, tz=timezone.utc
                 ).isoformat(),
             }
-            earthquakes.append(earthquake)
+            for feature in data["features"]
+            if feature["properties"].get("mag", 0) > 0  
+        ]
 
-        return earthquakes
-
+    except requests.RequestException as e:
+        logger.error(f"HTTP error while fetching earthquake data: {e}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse earthquake data response: {e}")
     except Exception as e:
-        logger.error(f"ERROR: Failed to fetch earthquake data: {e}")
-        return []
+        logger.error(f"Unexpected error occurred: {e}")
 
-
-
-#####################################
-# Stream Earthquake Data
-#####################################
+    return []
 
 
 def stream_earthquake_data(producer, topic, live_data_path, interval_secs):
     """
-    Continuously fetch and send earthquake data to Kafka topic.
-    Runs for a set timeout (20 minutes).
+    Fetch and send earthquake data to Kafka.
+    Runs for 20 minutes.
     """
-    message_count = 0  # Track messages for periodic flushing
-
     while time.time() - start_time < timeout:
         earthquakes = fetch_earthquake_data()
         for message in earthquakes:
             logger.info(message)
 
-            with live_data_path.open("a") as f:
-                f.write(json.dumps(message) + "\n")
-                logger.info(f"Wrote message to file: {message}")
+            # Write to local file
+            try:
+                with live_data_path.open("a") as f:
+                    f.write(json.dumps(message) + "\n")
+                    logger.info(f"Wrote message to file: {message}")
+            except OSError as e:
+                logger.error(f"Failed to write message to file: {e}")
+                continue
 
-            if producer:
-                producer.produce(topic, value=json.dumps(message).encode("utf-8"))
-                message_count += 1
-
-            # Flush producer every 10 messages for efficiency
-            if producer and message_count % 10 == 0:
-                producer.flush()
+            # Send to Kafka with retry logic
+            for attempt in range(3):  # Retry up to 3 times
+                if send_kafka_message(producer, topic, message):
+                    break  
+                logger.warning(f"Retry {attempt + 1}/3 - Kafka send failed.")
+                time.sleep(1)
+    
 
         time.sleep(interval_secs)
 
-    logger.info("Producer finished execution. Waiting before shutdown.")
-    time.sleep(10)  # Allow logs to settle
-    if producer:
-        producer.flush()
-    logger.info("FINALLY: Producer shutting down.")
+    logger.info("Producer finished execution. Shutting down.")
 
 
-#####################################
-# Define Main Function
-#####################################
+def main():
+    """Main function to start the producer."""
+    logger.info("Starting Kafka Producer.")
 
+    verify_services()
 
-def main() -> None:
-    logger.info("Starting Producer to run continuously.")
-
-    logger.info("STEP 1. Read environment variables.")
     try:
-        interval_secs: int = config.get_message_interval_seconds_as_int()
-        topic: str = config.get_kafka_topic()
-        kafka_server: str = config.get_kafka_broker_address()
-        live_data_path: pathlib.Path = config.get_live_data_path()
+        interval_secs = config.get_message_interval_seconds_as_int()
+        live_data_path = pathlib.Path(config.get_live_data_path())
     except Exception as e:
-        logger.error(f"ERROR: Failed to load environment variables: {e}")
+        logger.error(f"Failed to load configuration: {e}")
         sys.exit(1)
 
-    logger.info("STEP 2. Delete the live data file if exists to start fresh.")
     try:
         if live_data_path.exists():
             live_data_path.unlink()
             logger.info("Deleted existing live data file.")
-        logger.info("Build the path folders to the live data file if needed.")
-        os.makedirs(live_data_path.parent, exist_ok=True)
-    except Exception as e:
-        logger.error(f"ERROR: Failed to reset live data file: {e}")
+        live_data_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        logger.error(f"Failed to reset live data file: {e}")
         sys.exit(2)
 
-    logger.info("STEP 3. Initialize Kafka producer.")
-    producer = create_kafka_producer(kafka_server)
-
+    producer = create_kafka_producer()
     if not producer:
-        logger.error("ERROR: Kafka producer could not be initialized. Exiting.")
+        logger.error("Failed to initialize Kafka producer. Exiting.")
         sys.exit(3)
 
-    logger.info("STEP 4. Ensure Kafka topic exists.")
-    if not is_topic_available(topic):
-        logger.error("ERROR: Kafka topic could not be created. Exiting.")
-        sys.exit(4)
+    ensure_topic_exists(KAFKA_TOPIC)
 
-    logger.info("STEP 5. Start streaming earthquake data.")
     try:
-        stream_earthquake_data(producer, topic, live_data_path, interval_secs)
+        stream_earthquake_data(producer, KAFKA_TOPIC, live_data_path, interval_secs)
     except KeyboardInterrupt:
-        logger.warning("WARNING: Producer interrupted by user.")
+        logger.warning("Producer interrupted.")
     except Exception as e:
-        logger.error(f"ERROR: Unexpected error: {e}")
+        logger.error(f"Unexpected error occurred: {e}")
     finally:
-        logger.info("Producer shutting down.")
+        producer.flush()
+        logger.info("Producer shutdown complete.")
 
-
-#####################################
-# Conditional Execution
-#####################################
 
 if __name__ == "__main__":
     main()

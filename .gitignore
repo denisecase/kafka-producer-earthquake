@@ -13,8 +13,15 @@ __pycache__/
 # macOS system files
 .DS_Store
 
-# Environment variables file (which could contain sensitive information)
+# Environment variables files (which could contain sensitive information)
 .env
+.env.confluent
+.env.local
+.env.railway
+.env.redpanda
+
+
+# Environment variables file (for email/text alerts)
 .env.toml
 
 # log files
